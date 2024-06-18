@@ -280,85 +280,71 @@ def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_pro
     except Exception as e:
         yield f'Error\nException: {e}'
 
-def _save_settings(rating, 
-                   artist, 
-                   characters, 
-                   copyrights, 
-                   target, 
-                   len_target, 
-                   special_tags, 
-                   general, 
-                   width, 
-                   height, 
-                   black_list, 
-                   escape_bracket,
-                   temperature,
-                   loop_count,
-                   save_path,
-                   save_rule,
-                   negative_prompt,
-                   count_per_prompt,
-                    prompt_width,
-                    prompt_height,
-                    pre_prompt,
-                   ):
-    config_instance.rating = rating
-    config_instance.artist = artist
-    config_instance.characters = characters
-    config_instance.copyrights_series = copyrights
-    config_instance.target_length = target
-    config_instance.len_target = len_target
-    config_instance.special_tags = special_tags
-    config_instance.general = general
-    config_instance.width = width
-    config_instance.height = height
-    config_instance.tag_black_list = black_list
-    config_instance.escape_bracket = escape_bracket
-    config_instance.temperature = temperature
-    config_instance.loop_count = loop_count
-    config_instance.save_path = save_path
-    config_instance.save_rule = save_rule
-    config_instance.negative_prompt = negative_prompt
-    config_instance.count_per_prompt = count_per_prompt
-    config_instance.prompt_height = prompt_height
-    config_instance.prompt_width = prompt_width
-    config_instance.pre_prompt = pre_prompt
+def _save_settings(*args):
+    keys = [
+        'rating',
+        'artist',
+        'characters',
+        'copyrights',
+        'target',
+        'len_target',
+        'special_tags',
+        'general',
+        'width',
+        'height',
+        'black_list',
+        'escape_bracket',
+        'temperature',
+        'loop_count',
+        'save_path',
+        'save_rule',
+        'negative_prompt',
+        'count_per_prompt',
+        'prompt_width',
+        'prompt_height',
+        'pre_prompt',
+    ]
+    kwargs = dict(zip(keys, args))
+    for key, value in kwargs.items():
+        setattr(config_instance, key, value)
     config_instance.save()
 
 def set_cancel(state : bool = True):
     global is_cancel
     is_cancel = state
+def check_cancellation():
+    if is_cancel:
+        raise Exception('Cancellation Initiated by User')
+
 def generate(model,
-                rating,
-                artist,
-                characters,
-                copyrights,
-                target,
-                len_target,
-                special_tags,
-                general,
-                width,
-                height,
-                black_list,
-                escape_bracket,
-                temperature,
-                loop_count,
-                save_path,
-                save_rule,):
+             rating,
+             artist,
+             characters,
+             copyrights,
+             target,
+             len_target,
+             special_tags,
+             general,
+             width,
+             height,
+             black_list,
+             escape_bracket,
+             temperature,
+             loop_count,
+             save_path,
+             save_rule,):
     try:
         text_model, tokenizer = config_instance.models[model]
         for i in tqdm(range(1, loop_count + 1)):
-            if is_cancel:
-                raise Exception('Cancellation Initiated by User')
+            check_cancellation()
             prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, black_list, escape_bracket, temperature)
-            if is_cancel:
-                raise Exception('Cancellation Initiated by User')
+            
+            check_cancellation()
             prompt = convert_text_to_dict(prompt)
-            if is_cancel:
-                raise Exception('Cancellation Initiated by User')
+            
+            check_cancellation()
             prompt = save_prompt(save_path, prompt, save_rule)
-            if is_cancel:
-                raise Exception('Cancellation Initiated by User')
+            
             yield prompt, f'**Completed: {i} / {loop_count}**'
     except Exception as e:
         yield f'Error\nException: {e}', f'**Completed: {i} / {loop_count}**'

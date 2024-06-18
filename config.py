@@ -25,15 +25,15 @@ class Config:
     artist : str = ''
     characters : str = ''
     copyrights_series : str = ''
-    target_length : str = TargetLength.long             #这里是让LLM以为的输出长度
-    special_tags : List[str] = ['1girl']        # n girls ... n boys ... n others ...
+    target_length : str = TargetLength.long
+    special_tags : List[str] = ['1girl']
     width : int = 1024
     height : int = 1024
     tag_black_list : str = ''
     escape_bracket : bool = False
     temperature : float = 1.35
     model : str = 'KBlueLeaf/DanTagGen-gamma'
-    len_target : int = 40                #这里影响的是实际输出长度
+    len_target : int = 40
     loop_count : int = 1
     save_path : str = 'prompt/prompt.txt'
     save_rule : List[str] = ['characters', 'artist', 'general']
@@ -43,7 +43,6 @@ class Config:
     prompt_width : int = 1024
     prompt_height : int = 1024
     pre_prompt : str = ''
-
 
     model_paths : List[str] = ["KBlueLeaf/DanTagGen-gamma"]
     DEVICE : str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -61,31 +60,7 @@ class Config:
     for model_path in model_paths
     }
     def save(self):
-        config_dict = {
-            'rating': self.rating,
-            'artist': self.artist,
-            'characters': self.characters,
-            'copyrights_series': self.copyrights_series,
-            'general': self.general,
-            'target_length': self.target_length,
-            'special_tags': self.special_tags,
-            'width': self.width,
-            'height': self.height,
-            'tag_black_list': self.tag_black_list,
-            'escape_bracket': self.escape_bracket,
-            'temperature': self.temperature,
-            'model': self.model,
-            'len_target': self.len_target,
-            'loop_count': self.loop_count,
-            'save_path': self.save_path,
-            'save_rule': self.save_rule,
-            'model_paths' : self.model_paths,
-            'negative_prompt' : self.negative_prompt,
-            'count_per_prompt' : self.count_per_prompt,
-            'prompt_width' : self.prompt_width,
-            'prompt_height' : self.prompt_height,
-            'pre_prompt' : self.pre_prompt,
-        }
+        config_dict = {key: getattr(self, key) for key in self.__dict__ if not key.startswith('_')}
         with open('config.json', 'w') as f:
             json.dump(config_dict, f)
     def load(self):
