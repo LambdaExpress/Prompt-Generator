@@ -12,15 +12,16 @@ def get_file_base64(path):
         image_data = image_file.read()
         base64_encoded_data = base64.b64encode(image_data)
     return base64_encoded_data.decode('utf-8')
-def get_api_token():
-    with open('api_token.txt', 'r') as f:
-        return f.read().split('\n')[0]
+def get_authorization():
+    with open('api_token.txt', 'r') as file:
+        api_token = file.read().split('\n')[0]
+        return f"Bearer {api_token}"
 headers = {
     "Accept": "*/*",
     "Accept-Language": "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
     "Accept-Encoding": "gzip, deflate, br",
     "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
-    "Authorization": f"Bearer {get_api_token()}",
+    "Authorization": get_authorization(),
     "Content-Type": "application/json",
     "Origin": "https://novelai.net",
     "Referer": "https://novelai.net/",

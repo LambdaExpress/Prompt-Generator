@@ -107,7 +107,7 @@ def main():
         with gr.Tab("Image Generator"):
             with gr.Row():
                 with gr.Column(scale=3):
-                    prompt_file_path = gr.TextArea(label="File path", max_lines=1, value=save_path.value)
+                    prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=1, value=save_path.value)
                     negative_prompt = gr.TextArea(
                         max_lines=7, 
                         label="Negative prompt", 
@@ -250,15 +250,18 @@ def _set_cancel_image(state = True):
     is_cancel_image = state
 def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_prompt : int, width : int, height : int):
     n = 1
-    with open(prompt_file_path, 'r') as f:
-        prompts = f.read().split('\n')
-    if prompts[-1] == '':
-        prompts = prompts[:-1]
+    try:
+        with open(prompt_file_path, 'r') as f:
+            prompts = f.read().split('\n')
+        if prompts[-1] == '':
+            prompts = prompts[:-1]
+    except:
+        prompts = [prompt_file_path]
     try:
         for _ in generate_and_save_image(prompts, negative_prompt, count_per_prompt, width, height):
             if is_cancel_image:
                 raise Exception('Cancellation Initiated by User') 
-            yield f'**Completed: {n} / {len(2*prompts)}**'
+            yield f'**Completed: {n} / {len(count_per_prompt*prompts)}**'
             n += 1
     except Exception as e:
         yield f'Error\nException: {e}'
