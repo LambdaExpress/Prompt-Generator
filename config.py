@@ -42,6 +42,7 @@ class Config:
     count_per_prompt : int = 1
     prompt_width : int = 1024
     prompt_height : int = 1024
+    pre_prompt : str = ''
 
 
     model_paths : List[str] = ["KBlueLeaf/DanTagGen-gamma"]
@@ -82,7 +83,8 @@ class Config:
             'negative_prompt' : self.negative_prompt,
             'count_per_prompt' : self.count_per_prompt,
             'prompt_width' : self.prompt_width,
-            'prompt_height' : self.prompt_height
+            'prompt_height' : self.prompt_height,
+            'pre_prompt' : self.pre_prompt,
         }
         with open('config.json', 'w') as f:
             json.dump(config_dict, f)

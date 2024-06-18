@@ -107,7 +107,9 @@ def main():
         with gr.Tab("Image Generator"):
             with gr.Row():
                 with gr.Column(scale=3):
-                    prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=1, value=save_path.value)
+                    with gr.Row():
+                        pre_prompt = gr.TextArea(label="Input Pre-Prompt")
+                        prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=1, value=save_path.value)
                     negative_prompt = gr.TextArea(
                         max_lines=7, 
                         label="Negative prompt", 
@@ -175,6 +177,7 @@ def main():
                 count_per_prompt,
                 prompt_width,
                 prompt_height,
+                pre_prompt,
             ],
         )
         cancel_image.click(
@@ -203,6 +206,7 @@ def main():
                 count_per_prompt,
                 prompt_width,
                 prompt_height,
+                pre_prompt,
             ],
         )
         generate_image.click(
@@ -213,6 +217,7 @@ def main():
                 count_per_prompt,
                 width,
                 height,
+                pre_prompt,
             ],
             outputs=[
                 n,
@@ -252,7 +257,7 @@ def main():
 def _set_cancel_image(state = True):
     global is_cancel_image
     is_cancel_image = state
-def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_prompt : int, width : int, height : int):
+def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_prompt : int, width : int, height : int, pre_prompt : str):
     n = 1
     try:
         with open(prompt_file_path, 'r') as f:
@@ -261,6 +266,11 @@ def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_pro
             prompts = prompts[:-1]
     except:
         prompts = [prompt_file_path]
+    pre_prompt = pre_prompt.strip()
+    if pre_prompt.endswith(','):
+        pre_prompt = pre_prompt[:-1]
+    temp_prompts = [f'{pre_prompt}, {prompt}' for prompt in prompts]
+    prompts = temp_prompts
     try:
         for _ in generate_and_save_image(prompts, negative_prompt, count_per_prompt, width, height):
             if is_cancel_image:
@@ -290,6 +300,7 @@ def _save_settings(rating,
                    count_per_prompt,
                     prompt_width,
                     prompt_height,
+                    pre_prompt,
                    ):
     config_instance.rating = rating
     config_instance.artist = artist
@@ -311,6 +322,7 @@ def _save_settings(rating,
     config_instance.count_per_prompt = count_per_prompt
     config_instance.prompt_height = prompt_height
     config_instance.prompt_width = prompt_width
+    config_instance.pre_prompt = pre_prompt
     config_instance.save()
 
 def set_cancel(state : bool = True):
