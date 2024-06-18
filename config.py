@@ -21,23 +21,27 @@ class TargetLength:
 class Config:
     _instance = None
 
-    rating : str
-    artist : str
-    characters : str
-    copyrights_series : str
-    target_length : str             #这里是让LLM以为的输出长度
-    special_tags : List[str]        # n girls ... n boys ... n others ...
-    width : int
-    height : int
-    tag_black_list : str
-    escape_bracket : bool
-    temperature : float
-    model : str
-    len_target : int                #这里影响的是实际输出长度
-    loop_count : int
-    save_path : str
-    save_rule : List[str]
-    general : str
+    rating : str = Rating.safe
+    artist : str = ''
+    characters : str = ''
+    copyrights_series : str = ''
+    target_length : str = TargetLength.long             #这里是让LLM以为的输出长度
+    special_tags : List[str] = ['1girl']        # n girls ... n boys ... n others ...
+    width : int = 1024
+    height : int = 1024
+    tag_black_list : str = ''
+    escape_bracket : bool = False
+    temperature : float = 1.35
+    model : str = 'KBlueLeaf/DanTagGen-gamma'
+    len_target : int = 40                #这里影响的是实际输出长度
+    loop_count : int = 1
+    save_path : str = 'prompt/prompt.txt'
+    save_rule : List[str] = ['characters', 'artist', 'general']
+    general : str = ''
+    negative_prompt : str = ''
+    count_per_prompt : int = 1
+
+
     model_paths : List[str] = ["KBlueLeaf/DanTagGen-gamma"]
     DEVICE : str = "cuda" if torch.cuda.is_available() else "cpu"
     models = {
@@ -73,6 +77,8 @@ class Config:
             'save_path': self.save_path,
             'save_rule': self.save_rule,
             'model_paths' : self.model_paths,
+            'negative_prompt' : self.negative_prompt,
+            'count_per_prompt' : self.count_per_prompt
         }
         with open('config.json', 'w') as f:
             json.dump(config_dict, f)
