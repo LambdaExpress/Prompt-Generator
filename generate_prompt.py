@@ -76,8 +76,11 @@ def tag_gen(
     prev_len = 0
     retry = max_retry
     llm_gen = ""
-
+    n = 0
     while True:
+        n += 1
+        if n > 100:
+            print(n)
         llm_gen = generate(
             model=text_model,
             tokenizer=tokenizer,
@@ -116,7 +119,6 @@ def tag_gen(
                     break
                 retry -= 1
             shuffle(extra_tokens)
-            retry = max_retry
             prev_len = len(extra_tokens)
             prompt = llm_gen.strip().replace("  <|", " <|")
         else:
@@ -124,20 +126,20 @@ def tag_gen(
     yield llm_gen, extra_tokens
 
 def get_prompt(    
-    text_model: LlamaForCausalLM,
-    tokenizer: LlamaTokenizer,
-    rating: str = "",
-    artist: str = "",
-    characters: str = "",
-    copyrights: str = "",
-    target: str = "long",
-    len_target : int = 40,
-    special_tags: List[str] = ["1girl"],
-    general: str = "",
-    aspect_ratio: float = 0.0,
-    blacklist: str = "",
-    escape_bracket: bool = False,
-    temperature: float = 1.35,):
+        text_model: LlamaForCausalLM,
+        tokenizer: LlamaTokenizer,
+        rating: str = "",
+        artist: str = "",
+        characters: str = "",
+        copyrights: str = "",
+        target: str = "long",
+        len_target : int = 40,
+        special_tags: List[str] = ["1girl"],
+        general: str = "",
+        aspect_ratio: float = 0.0,
+        blacklist: str = "",
+        escape_bracket: bool = False,
+        temperature: float = 1.35,):
     prompt = f"""
     rating: {rating or '<|empty|>'}
     artist: {artist.strip() or '<|empty|>'}

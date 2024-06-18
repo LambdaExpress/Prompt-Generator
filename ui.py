@@ -1,6 +1,4 @@
-
 import gradio as gr
-import config
 from config import Config
 from metainfo import SAVERULE, SPECIAL
 from generate_prompt import get_prompt, convert_text_to_dict, save_prompt
