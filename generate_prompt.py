@@ -168,7 +168,7 @@ def get_prompt(
         llm_gen = llm_gen.replace("[", "\\[").replace("]", "\\]").replace("(", "\\(").replace(")", "\\)")
     return llm_gen
 def convert_text_to_dict(text : str):
-    lines = [line.strip().replace('  <|empty|>', '') for line in text.split('\n')]
+    lines = [line.strip().replace('<|empty|>', '') for line in text.split('\n')]
     data : Dict[str, str] = {}
     for line in lines:
         if ':' in line:
@@ -176,7 +176,7 @@ def convert_text_to_dict(text : str):
             data[key.strip()] = value.strip()
         else:
             data['general'] = f"{data['general']}{line.strip()}"
-    data['general'] = data['general'].replace('  <|input_end|>', '')
+    data['general'] = data['general'].replace(' <|input_end|>', ',')
     return data
 
 def save_prompt(path : str, prompt : Dict[str, str], save_rule : List[str]):
@@ -189,3 +189,4 @@ def save_prompt(path : str, prompt : Dict[str, str], save_rule : List[str]):
                 rule += f'{prompt[i]}, '
         rule = rule[:-2] + '\n'
         f.write(rule)
+    return rule
