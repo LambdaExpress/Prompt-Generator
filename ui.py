@@ -109,7 +109,7 @@ def main():
                 with gr.Column(scale=3):
                     with gr.Row():
                         pre_prompt = gr.TextArea(label="Input Pre-Prompt")
-                        prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=1, value=save_path.value)
+                        prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=1, value=config_instance.prompt_file_path)
                     negative_prompt = gr.TextArea(
                         max_lines=7, 
                         label="Negative prompt", 
