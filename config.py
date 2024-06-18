@@ -40,6 +40,8 @@ class Config:
     general : str = ''
     negative_prompt : str = ''
     count_per_prompt : int = 1
+    prompt_width : int = 1024
+    prompt_height : int = 1024
 
 
     model_paths : List[str] = ["KBlueLeaf/DanTagGen-gamma"]
@@ -78,7 +80,9 @@ class Config:
             'save_rule': self.save_rule,
             'model_paths' : self.model_paths,
             'negative_prompt' : self.negative_prompt,
-            'count_per_prompt' : self.count_per_prompt
+            'count_per_prompt' : self.count_per_prompt,
+            'prompt_width' : self.prompt_width,
+            'prompt_height' : self.prompt_height
         }
         with open('config.json', 'w') as f:
             json.dump(config_dict, f)

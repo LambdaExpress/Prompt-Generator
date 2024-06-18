@@ -49,15 +49,15 @@ def main():
                                 value=config_instance.tag_black_list
                             )
                             with gr.Row():
-                                width = gr.Slider(
-                                    value=config_instance.width,
+                                prompt_width = gr.Slider(
+                                    value=config_instance.prompt_width,
                                     minimum=256,
                                     maximum=4096,
                                     step=32,
                                     label="Width",
                                 )
-                                height = gr.Slider(
-                                    value=config_instance.height,
+                                prompt_height = gr.Slider(
+                                    value=config_instance.prompt_height,
                                     minimum=256,
                                     maximum=4096,
                                     step=32,
@@ -173,6 +173,8 @@ def main():
                 save_rule,
                 negative_prompt,
                 count_per_prompt,
+                prompt_width,
+                prompt_height,
             ],
         )
         cancel_image.click(
@@ -199,6 +201,8 @@ def main():
                 save_rule,
                 negative_prompt,
                 count_per_prompt,
+                prompt_width,
+                prompt_height,
             ],
         )
         generate_image.click(
@@ -229,8 +233,8 @@ def main():
                 len_target,
                 special_tags,
                 general,
-                width,
-                height,
+                prompt_width,
+                prompt_height,
                 black_list,
                 escape_bracket,
                 temperature,
@@ -284,6 +288,8 @@ def _save_settings(rating,
                    save_rule,
                    negative_prompt,
                    count_per_prompt,
+                    prompt_width,
+                    prompt_height,
                    ):
     config_instance.rating = rating
     config_instance.artist = artist
@@ -303,6 +309,8 @@ def _save_settings(rating,
     config_instance.save_rule = save_rule
     config_instance.negative_prompt = negative_prompt
     config_instance.count_per_prompt = count_per_prompt
+    config_instance.prompt_height = prompt_height
+    config_instance.prompt_width = prompt_width
     config_instance.save()
 
 def set_cancel(state : bool = True):
