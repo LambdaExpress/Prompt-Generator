@@ -11,7 +11,7 @@ config_instance = Config()
 
 def main():
     with gr.Blocks(theme=gr.themes.Soft()) as demo:
-        with gr.Tab("generate prompt"):
+        with gr.Tab("Prompt Generator"):
             with gr.Row():
                 with gr.Column(scale=4):
                     with gr.Row():
@@ -104,7 +104,7 @@ def main():
                         )
                         count = gr.Markdown()
                     save_settings = gr.Button("Save Settings")
-        with gr.Tab("generate image"):
+        with gr.Tab("Image Generator"):
             with gr.Row():
                 with gr.Column(scale=3):
                     prompt_file_path = gr.TextArea(label="File path", max_lines=1, value=save_path.value)
