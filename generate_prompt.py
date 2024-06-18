@@ -132,13 +132,12 @@ def get_prompt(
     copyrights: str = "",
     target: str = "long",
     len_target : int = 40,
-    special_tags: list[str] = ["1girl"],
+    special_tags: List[str] = ["1girl"],
     general: str = "",
     aspect_ratio: float = 0.0,
     blacklist: str = "",
     escape_bracket: bool = False,
     temperature: float = 1.35,):
-    general = ''
     prompt = f"""
     rating: {rating or '<|empty|>'}
     artist: {artist.strip() or '<|empty|>'}

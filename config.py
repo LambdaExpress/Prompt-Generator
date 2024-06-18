@@ -5,6 +5,8 @@ from llama_cpp import LlamaTokenizer
 import torch
 from transformers import GenerationConfig, PreTrainedModel, PreTrainedTokenizerBase
 from transformers import LlamaForCausalLM, LlamaTokenizer
+os.environ["CUDA_PATH"] = r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2"
+os.environ["TRANSFORMERS_CACHE"] = f"{os.getcwd()}/.cache"
 class Rating:
     safe = 'safe'
     sensitive = 'sensitive'
