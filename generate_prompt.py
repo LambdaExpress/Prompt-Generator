@@ -76,11 +76,7 @@ def tag_gen(
     prev_len = 0
     retry = max_retry
     llm_gen = ""
-    n = 0
     while True:
-        n += 1
-        if n > 100:
-            print(n)
         llm_gen = generate(
             model=text_model,
             tokenizer=tokenizer,
