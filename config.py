@@ -43,6 +43,7 @@ class Config:
     prompt_width : int = 1024
     prompt_height : int = 1024
     pre_prompt : str = ''
+    prompt_file_path : str = ''
 
     model_paths : List[str] = ["KBlueLeaf/DanTagGen-gamma"]
     DEVICE : str = "cuda" if torch.cuda.is_available() else "cpu"

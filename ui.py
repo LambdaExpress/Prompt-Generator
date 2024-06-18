@@ -145,7 +145,7 @@ def main():
                     count_per_prompt = gr.Slider(
                         value=config_instance.count_per_prompt,
                         minimum=1,
-                        maximum=5,
+                        maximum=100,
                         step=1,
                         label='Count per prompt'
                     )
@@ -178,6 +178,7 @@ def main():
                 prompt_width,
                 prompt_height,
                 pre_prompt,
+                prompt_file_path,
             ],
         )
         cancel_image.click(
@@ -207,6 +208,7 @@ def main():
                 prompt_width,
                 prompt_height,
                 pre_prompt,
+                prompt_file_path,
             ],
         )
         generate_image.click(
@@ -279,6 +281,8 @@ def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_pro
             n += 1
     except Exception as e:
         yield f'Error\nException: {e}'
+    finally:
+        _set_cancel_image(False)
 
 def _save_settings(*args):
     keys = [
@@ -303,6 +307,7 @@ def _save_settings(*args):
         'prompt_width',
         'prompt_height',
         'pre_prompt',
+        'prompt_file_path',
     ]
     kwargs = dict(zip(keys, args))
     for key, value in kwargs.items():
