@@ -63,6 +63,17 @@ def main():
                                     step=32,
                                     label="Height",
                                 )
+                                gr.Button("Exchange").click(
+                                    lambda w, h : (h, w),
+                                    inputs=[
+                                        prompt_width,
+                                        prompt_height,
+                                    ],
+                                    outputs=[
+                                        prompt_width,
+                                        prompt_height
+                                    ]
+                                )
                             with gr.Row():
                                 temperature = gr.Slider(
                                     value=config_instance.temperature,
@@ -108,8 +119,8 @@ def main():
             with gr.Row():
                 with gr.Column(scale=3):
                     with gr.Row():
-                        pre_prompt = gr.TextArea(label="Input Pre-Prompt")
-                        prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=1, value=config_instance.prompt_file_path)
+                        pre_prompt = gr.TextArea(label="Input Pre-Prompt", max_lines=7)
+                        prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=7, value=config_instance.prompt_file_path)
                     negative_prompt = gr.TextArea(
                         max_lines=7, 
                         label="Negative prompt", 
