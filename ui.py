@@ -1,3 +1,5 @@
+import queue
+import threading
 import gradio as gr
 from config import Config
 from metainfo import SAVERULE, SPECIAL
@@ -8,6 +10,9 @@ from tqdm import tqdm
 is_cancel = False
 is_cancel_image = False
 config_instance = Config()
+prompt_count = 0
+image_count = 0
+global_loop_count = 0
 
 def main():
     with gr.Blocks(theme=gr.themes.Soft()) as demo:
@@ -91,7 +96,9 @@ def main():
                                 value=list(config_instance.models.keys())[-1],
                                 label="Model",
                             )
-                    submit = gr.Button("Submit")
+                    with gr.Row():
+                        submit = gr.Button("Generate Pormpt")
+                        generate_all = gr.Button("Generate Prompt and Image")
                     cancel = gr.Button("Cancel")
                 with gr.Row():
                     with gr.Column(scale=5):
@@ -113,7 +120,7 @@ def main():
                             label="Final output", lines=14, show_copy_button=True,
                             max_lines = 14,
                         )
-                        count = gr.Markdown()
+                        count = gr.Markdown(every=5, value=monitor_counts)
                     save_settings = gr.Button("Save Settings")
         with gr.Tab("Image Generator"):
             with gr.Row():
@@ -165,6 +172,30 @@ def main():
                 with gr.Column(2):
                     n = gr.Markdown()
                     save_settings_image = gr.Button("Save Settings")
+        generate_all.click(
+            generate_prompt_and_image,
+            inputs=[
+                model,
+                rating,
+                artist,
+                characters,
+                copyrights,
+                target,
+                len_target,
+                special_tags,
+                general,
+                width,
+                height,
+                black_list,
+                escape_bracket,
+                temperature,
+                loop_count,
+                save_path,
+                save_rule,
+                negative_prompt,
+                pre_prompt,
+            ],
+        )
         save_settings_image.click(
             _save_settings,
             inputs=[
@@ -267,6 +298,8 @@ def main():
             show_progress=True,
         )
     demo.launch()
+def monitor_counts():
+    return f"**Prompt = {prompt_count} / {global_loop_count}\nImage = {image_count} / {global_loop_count}**"
 def _set_cancel_image(state = True):
     global is_cancel_image
     is_cancel_image = state
@@ -282,8 +315,9 @@ def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_pro
     pre_prompt = pre_prompt.strip()
     if pre_prompt.endswith(','):
         pre_prompt = pre_prompt[:-1]
-    temp_prompts = [f'{pre_prompt}, {prompt}' for prompt in prompts]
-    prompts = temp_prompts
+    if pre_prompt != '':
+        temp_prompts = [f'{pre_prompt}, {prompt}' for prompt in prompts]
+        prompts = temp_prompts
     try:
         for _ in generate_and_save_image(prompts, negative_prompt, count_per_prompt, width, height):
             if is_cancel_image:
@@ -329,9 +363,71 @@ def set_cancel(state : bool = True):
     global is_cancel
     is_cancel = state
 def check_cancellation():
+    global is_cancel
     if is_cancel:
-        raise Exception('Cancellation Initiated by User')
+        raise Exception('Operation cancelled by user')
+def generate_prompt_and_image(model,
+             rating,
+             artist,
+             characters,
+             copyrights,
+             target,
+             len_target,
+             special_tags,
+             general,
+             width,
+             height,
+             black_list,
+             escape_bracket,
+             temperature,
+             loop_count,
+             save_path,
+             save_rule,
+             negative_prompt,
+             pre_prompt):
+    prompt_queue = queue.Queue()
+    global global_loop_count
+    global_loop_count = loop_count
+    def producer(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, black_list, escape_bracket, temperature, loop_count, save_path, save_rule):
+        try:
+            text_model, tokenizer = config_instance.models[model]
+            for i in range(1, loop_count + 1):
+                check_cancellation()
+                prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, black_list, escape_bracket, temperature)
+                prompt = convert_text_to_dict(prompt)
+                prompt = save_prompt(save_path, prompt, save_rule)
+                prompt_queue.put(prompt)
+                global prompt_count, image_count
+                prompt_count = prompt_count + 1
+            raise Exception("Mission Completed")
+        except Exception as e:
+            prompt_queue.put(e)
+    def consumer(width, height, negative_prompt, pre_prompt):
+        while True:
+            prompt = prompt_queue.get()
+            if prompt is None:
+                continue
+            try:
+                if isinstance(prompt, Exception):
+                    raise prompt
+                for path in _generate_image(prompt, negative_prompt, 1, width, height, pre_prompt):
+                    pass
+                global image_count, prompt_count
+                image_count = image_count + 1
+            except Exception as e:
+                print(f'Error\nException: {e}')
+            finally:
+                prompt_queue.task_done()
+    producer_thread = threading.Thread(target=producer, args=(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, black_list, escape_bracket, temperature, loop_count, save_path, save_rule))
+    consumer_thread = threading.Thread(target=consumer, args=(width, height, negative_prompt, pre_prompt))
+    
+    producer_thread.start()
+    consumer_thread.start()
 
+    prompt_queue.join()
+
+    prompt_queue.put(None)
+    consumer_thread.join()
 def generate(model,
              rating,
              artist,
