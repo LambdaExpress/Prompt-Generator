@@ -49,7 +49,7 @@ def main():
                             )
                         with gr.Column(scale=2):
                             general = gr.TextArea(label="Input your general tags", lines=6, value=config_instance.general)
-                            black_list = gr.TextArea(
+                            tag_black_list = gr.TextArea(
                                 label="tag Black list (seperated by comma)", lines=5,
                                 value=config_instance.tag_black_list
                             )
@@ -126,7 +126,7 @@ def main():
             with gr.Row():
                 with gr.Column(scale=3):
                     with gr.Row():
-                        pre_prompt = gr.TextArea(label="Input Pre-Prompt", max_lines=7)
+                        pre_prompt = gr.TextArea(label="Input Pre-Prompt", max_lines=7, value=config_instance.pre_prompt)
                         prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=7, value=config_instance.prompt_file_path)
                     negative_prompt = gr.TextArea(
                         max_lines=7, 
@@ -186,7 +186,7 @@ def main():
                 general,
                 width,
                 height,
-                black_list,
+                tag_black_list,
                 escape_bracket,
                 temperature,
                 loop_count,
@@ -209,7 +209,7 @@ def main():
                 general,
                 width,
                 height,
-                black_list,
+                tag_black_list,
                 escape_bracket,
                 temperature,
                 loop_count,
@@ -239,7 +239,7 @@ def main():
                 general,
                 width,
                 height,
-                black_list,
+                tag_black_list,
                 escape_bracket,
                 temperature,
                 loop_count,
@@ -284,7 +284,7 @@ def main():
                 general,
                 prompt_width,
                 prompt_height,
-                black_list,
+                tag_black_list,
                 escape_bracket,
                 temperature,
                 loop_count,
@@ -299,7 +299,10 @@ def main():
         )
     demo.launch()
 def monitor_counts():
-    return f"**Prompt = {prompt_count} / {global_loop_count}\nImage = {image_count} / {global_loop_count}**"
+    if image_count >= 0:
+     return f"**Completed: {prompt_count} / {global_loop_count}\nImage = {image_count} / {global_loop_count}**"
+    else:
+        return f"**Completed: {prompt_count} / {global_loop_count}**"
 def _set_cancel_image(state = True):
     global is_cancel_image
     is_cancel_image = state
@@ -341,7 +344,7 @@ def _save_settings(*args):
         'general',
         'width',
         'height',
-        'black_list',
+        'tag_black_list',
         'escape_bracket',
         'temperature',
         'loop_count',
@@ -377,7 +380,7 @@ def generate_prompt_and_image(model,
              general,
              width,
              height,
-             black_list,
+             tag_black_list,
              escape_bracket,
              temperature,
              loop_count,
@@ -386,14 +389,15 @@ def generate_prompt_and_image(model,
              negative_prompt,
              pre_prompt):
     prompt_queue = queue.Queue()
-    global global_loop_count
+    global global_loop_count, prompt_count, image_count
     global_loop_count = loop_count
-    def producer(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, black_list, escape_bracket, temperature, loop_count, save_path, save_rule):
+    prompt_count = image_count = 0
+    def producer(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule):
         try:
             text_model, tokenizer = config_instance.models[model]
             for i in range(1, loop_count + 1):
                 check_cancellation()
-                prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, black_list, escape_bracket, temperature)
+                prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, tag_black_list, escape_bracket, temperature)
                 prompt = convert_text_to_dict(prompt)
                 prompt = save_prompt(save_path, prompt, save_rule)
                 prompt_queue.put(prompt)
@@ -408,6 +412,7 @@ def generate_prompt_and_image(model,
             if prompt is None:
                 continue
             try:
+                check_cancellation()
                 if isinstance(prompt, Exception):
                     raise prompt
                 for path in _generate_image(prompt, negative_prompt, 1, width, height, pre_prompt):
@@ -415,10 +420,10 @@ def generate_prompt_and_image(model,
                 global image_count, prompt_count
                 image_count = image_count + 1
             except Exception as e:
-                print(f'Error\nException: {e}')
+                raise Exception(f'Error\nException: {e}')
             finally:
                 prompt_queue.task_done()
-    producer_thread = threading.Thread(target=producer, args=(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, black_list, escape_bracket, temperature, loop_count, save_path, save_rule))
+    producer_thread = threading.Thread(target=producer, args=(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule))
     consumer_thread = threading.Thread(target=consumer, args=(width, height, negative_prompt, pre_prompt))
     
     producer_thread.start()
@@ -428,6 +433,7 @@ def generate_prompt_and_image(model,
 
     prompt_queue.put(None)
     consumer_thread.join()
+    prompt_count = image_count = 0
 def generate(model,
              rating,
              artist,
@@ -439,24 +445,25 @@ def generate(model,
              general,
              width,
              height,
-             black_list,
+             tag_black_list,
              escape_bracket,
              temperature,
              loop_count,
              save_path,
              save_rule,):
+    global image_count
+    image_count = -1
     try:
         text_model, tokenizer = config_instance.models[model]
         for i in tqdm(range(1, loop_count + 1)):
             check_cancellation()
-            prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, black_list, escape_bracket, temperature)
+            prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, tag_black_list, escape_bracket, temperature)
             
             check_cancellation()
             prompt = convert_text_to_dict(prompt)
             
             check_cancellation()
             prompt = save_prompt(save_path, prompt, save_rule)
-            
             yield prompt, f'**Completed: {i} / {loop_count}**'
     except Exception as e:
         yield f'Error\nException: {e}', f'**Completed: {i} / {loop_count}**'
