@@ -161,9 +161,10 @@ def get_prompt(
         top_k=100,
         max_new_tokens=256,
         max_retry=5):
-        print(llm_gen)
+        pass
     if escape_bracket:
         llm_gen = llm_gen.replace("[", "\\[").replace("]", "\\]").replace("(", "\\(").replace(")", "\\)")
+    print(llm_gen)
     return llm_gen
 def convert_text_to_dict(text : str):
     lines = [line.strip().replace('<|empty|>', '') for line in text.split('\n')]
