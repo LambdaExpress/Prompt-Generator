@@ -403,12 +403,12 @@ def generate_prompt_and_image(model,
             for i in range(1, loop_count + 1):
                 check_cancellation()
 
-                artist = wildcard_match(artist, 'wildcards')
-                characters = wildcard_match(characters, 'wildcards')
-                copyrights = wildcard_match(copyrights, 'wildcards')
-                general = wildcard_match(general, 'wildcards')
+                _artist = wildcard_match(artist, 'wildcards')
+                _characters = wildcard_match(characters, 'wildcards')
+                _copyrights = wildcard_match(copyrights, 'wildcards')
+                _general = wildcard_match(general, 'wildcards')
 
-                prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, tag_black_list, escape_bracket, temperature)
+                prompt = get_prompt(text_model, tokenizer, rating, _artist, _characters, _copyrights, target, len_target, special_tags, _general, width / height, tag_black_list, escape_bracket, temperature)
                 prompt_dict = convert_text_to_dict(prompt)
                 prompt = save_prompt(save_path, prompt_dict, save_rule)
                 prompt_queue.put((prompt, prompt_dict))
@@ -424,12 +424,12 @@ def generate_prompt_and_image(model,
                 break
             try:
                 prompt, prompt_dict = item
-                negative_prompt = wildcard_match(negative_prompt, "wildcards")
-                generate_image_format = dict_wildcard_match(generate_image_format, prompt_dict)
+                _negative_prompt = wildcard_match(negative_prompt, "wildcards")
+                _generate_image_format = dict_wildcard_match(generate_image_format, prompt_dict)
                 check_cancellation()
                 if isinstance(prompt, Exception):
                     raise prompt
-                for path in _generate_image(prompt, negative_prompt, 1, width, height, generate_image_format):
+                for path in _generate_image(prompt, _negative_prompt, 1, width, height, _generate_image_format):
                     pass
                 global image_count, prompt_count
                 image_count = image_count + 1
