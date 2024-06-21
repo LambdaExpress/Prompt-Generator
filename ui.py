@@ -5,6 +5,7 @@ from config import Config
 from metainfo import SAVERULE, SPECIAL
 from generate_prompt import get_prompt, convert_text_to_dict, save_prompt
 from generate_image import generate_and_save_image
+from wildcards import wildcard_match, wildcards_match
 from tqdm import tqdm
 
 is_cancel = False
@@ -32,9 +33,9 @@ def main():
                                 label="Special tags",
                                 multiselect=True,
                             )
-                            characters = gr.Textbox(label="Characters", value=config_instance.characters)
-                            copyrights = gr.Textbox(label="Copyrights(Series)", value=config_instance.copyrights_series)
-                            artist = gr.Textbox(label="Artist", value=config_instance.artist)
+                            characters = gr.Textbox(label="Characters (Wildcards)", value=config_instance.characters)
+                            copyrights = gr.Textbox(label="Copyrights(Series) (Wildcards)", value=config_instance.copyrights_series)
+                            artist = gr.Textbox(label="Artist (Wildcards)", value=config_instance.artist)
                             target = gr.Radio(
                                 ["very_short", "short", "long", "very_long"],
                                 value=config_instance.target_length,
@@ -48,7 +49,7 @@ def main():
                                 label="Len target",
                             )
                         with gr.Column(scale=2):
-                            general = gr.TextArea(label="Input your general tags", lines=6, value=config_instance.general)
+                            general = gr.TextArea(label="Input your general tags (Wildcards)", lines=6, value=config_instance.general)
                             tag_black_list = gr.TextArea(
                                 label="tag Black list (seperated by comma)", lines=5,
                                 value=config_instance.tag_black_list
@@ -116,9 +117,10 @@ def main():
                             label="Loop Count",
                         )
                         save_path = gr.Textbox(label="Save path", value=config_instance.save_path)
-                        formated_result = gr.TextArea(
-                            label="Final output", lines=14, show_copy_button=True,
+                        generate_image_format = gr.TextArea(
+                            label="Generate Image Format (Wildcards)", lines=14,
                             max_lines = 14,
+                            placeholder='Example: <artist>, <general>, some words...',
                         )
                         count = gr.Markdown(every=5, value=monitor_counts)
                     save_settings = gr.Button("Save Settings")
@@ -126,11 +128,11 @@ def main():
             with gr.Row():
                 with gr.Column(scale=3):
                     with gr.Row():
-                        pre_prompt = gr.TextArea(label="Input Pre-Prompt", max_lines=7, value=config_instance.pre_prompt)
+                        pre_prompt = gr.TextArea(label="Input Pre-Prompt (Wildcards)", max_lines=7, value=config_instance.pre_prompt)
                         prompt_file_path = gr.TextArea(label="Input file path or prompt", max_lines=7, value=config_instance.prompt_file_path)
                     negative_prompt = gr.TextArea(
                         max_lines=7, 
-                        label="Negative prompt", 
+                        label="Negative prompt (Wildcards)", 
                         value=config_instance.negative_prompt
                     )
                     with gr.Row():
@@ -193,7 +195,7 @@ def main():
                 save_path,
                 save_rule,
                 negative_prompt,
-                pre_prompt,
+                generate_image_format,
             ],
         )
         save_settings_image.click(
@@ -221,6 +223,7 @@ def main():
                 prompt_height,
                 pre_prompt,
                 prompt_file_path,
+                generate_image_format,
             ],
         )
         cancel_image.click(
@@ -251,6 +254,7 @@ def main():
                 prompt_height,
                 pre_prompt,
                 prompt_file_path,
+                generate_image_format,
             ],
         )
         generate_image.click(
@@ -292,7 +296,6 @@ def main():
                 save_rule,
             ],
             outputs=[
-                formated_result,
                 count
             ],
             show_progress=True,
@@ -319,8 +322,8 @@ def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_pro
     if pre_prompt.endswith(','):
         pre_prompt = pre_prompt[:-1]
     if pre_prompt != '':
-        temp_prompts = [f'{pre_prompt}, {prompt}' for prompt in prompts]
-        prompts = temp_prompts
+        temp = [wildcard_match(pre_prompt, "wildcards", general) for general in prompts]
+        prompts = temp
     try:
         for _ in generate_and_save_image(prompts, negative_prompt, count_per_prompt, width, height):
             if is_cancel_image:
@@ -356,6 +359,7 @@ def _save_settings(*args):
         'prompt_height',
         'pre_prompt',
         'prompt_file_path',
+        'generate_image_format',
     ]
     kwargs = dict(zip(keys, args))
     for key, value in kwargs.items():
@@ -387,7 +391,7 @@ def generate_prompt_and_image(model,
              save_path,
              save_rule,
              negative_prompt,
-             pre_prompt):
+             generate_format):
     prompt_queue = queue.Queue()
     global global_loop_count, prompt_count, image_count
     global_loop_count = loop_count
@@ -397,6 +401,12 @@ def generate_prompt_and_image(model,
             text_model, tokenizer = config_instance.models[model]
             for i in range(1, loop_count + 1):
                 check_cancellation()
+
+                artist = wildcard_match(artist, 'wildcards')
+                characters = wildcard_match(characters, 'wildcards')
+                copyrights = wildcard_match(copyrights, 'wildcards')
+                general = wildcard_match(general, 'wildcards')
+
                 prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, tag_black_list, escape_bracket, temperature)
                 prompt = convert_text_to_dict(prompt)
                 prompt = save_prompt(save_path, prompt, save_rule)
@@ -406,16 +416,17 @@ def generate_prompt_and_image(model,
             raise Exception("Mission Completed")
         except Exception as e:
             prompt_queue.put(e)
-    def consumer(width, height, negative_prompt, pre_prompt):
+    def consumer(width, height, negative_prompt):
         while True:
             prompt = prompt_queue.get()
             if prompt is None:
                 continue
             try:
+                negative_prompt = wildcard_match(negative_prompt, "wildcards")
                 check_cancellation()
                 if isinstance(prompt, Exception):
                     raise prompt
-                for path in _generate_image(prompt, negative_prompt, 1, width, height, pre_prompt):
+                for path in _generate_image(prompt, negative_prompt, 1, width, height, generate_format):
                     pass
                 global image_count, prompt_count
                 image_count = image_count + 1
@@ -424,7 +435,7 @@ def generate_prompt_and_image(model,
             finally:
                 prompt_queue.task_done()
     producer_thread = threading.Thread(target=producer, args=(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule))
-    consumer_thread = threading.Thread(target=consumer, args=(width, height, negative_prompt, pre_prompt))
+    consumer_thread = threading.Thread(target=consumer, args=(width, height, negative_prompt))
     
     producer_thread.start()
     consumer_thread.start()
@@ -461,12 +472,11 @@ def generate(model,
             
             check_cancellation()
             prompt = convert_text_to_dict(prompt)
-            
             check_cancellation()
             prompt = save_prompt(save_path, prompt, save_rule)
-            yield prompt, f'**Completed: {i} / {loop_count}**'
+            yield f'**Completed: {i} / {loop_count}**'
     except Exception as e:
-        yield f'Error\nException: {e}', f'**Completed: {i} / {loop_count}**'
+        yield f'**Completed: {i} / {loop_count}**'
     finally:
         set_cancel(False)
     

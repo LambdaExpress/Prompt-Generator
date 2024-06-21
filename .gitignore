@@ -8,3 +8,5 @@
 /api_token.txt
 /config.json
 /test.py
+wildcards/*
+!wildcards/
