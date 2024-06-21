@@ -5,7 +5,7 @@ from config import Config
 from metainfo import SAVERULE, SPECIAL
 from generate_prompt import get_prompt, convert_text_to_dict, save_prompt
 from generate_image import generate_and_save_image
-from wildcards import wildcard_match, wildcards_match
+from wildcards import wildcard_match, dict_wildcard_match
 from tqdm import tqdm
 
 is_cancel = False
@@ -118,6 +118,7 @@ def main():
                         )
                         save_path = gr.Textbox(label="Save path", value=config_instance.save_path)
                         generate_image_format = gr.TextArea(
+                            value=config_instance.generate_image_format,
                             label="Generate Image Format (Wildcards)", lines=14,
                             max_lines = 14,
                             placeholder='Example: <artist>, <general>, some words...',
@@ -391,7 +392,7 @@ def generate_prompt_and_image(model,
              save_path,
              save_rule,
              negative_prompt,
-             generate_format):
+             generate_image_format):
     prompt_queue = queue.Queue()
     global global_loop_count, prompt_count, image_count
     global_loop_count = loop_count
@@ -408,25 +409,27 @@ def generate_prompt_and_image(model,
                 general = wildcard_match(general, 'wildcards')
 
                 prompt = get_prompt(text_model, tokenizer, rating, artist, characters, copyrights, target, len_target, special_tags, general, width / height, tag_black_list, escape_bracket, temperature)
-                prompt = convert_text_to_dict(prompt)
-                prompt = save_prompt(save_path, prompt, save_rule)
-                prompt_queue.put(prompt)
+                prompt_dict = convert_text_to_dict(prompt)
+                prompt = save_prompt(save_path, prompt_dict, save_rule)
+                prompt_queue.put((prompt, prompt_dict))
                 global prompt_count, image_count
                 prompt_count = prompt_count + 1
             raise Exception("Mission Completed")
         except Exception as e:
             prompt_queue.put(e)
-    def consumer(width, height, negative_prompt):
+    def consumer(width, height, negative_prompt, generate_image_format):
         while True:
-            prompt = prompt_queue.get()
-            if prompt is None:
-                continue
+            item = prompt_queue.get()
+            if item is None:
+                break
             try:
+                prompt, prompt_dict = item
                 negative_prompt = wildcard_match(negative_prompt, "wildcards")
+                generate_image_format = dict_wildcard_match(generate_image_format, prompt_dict)
                 check_cancellation()
                 if isinstance(prompt, Exception):
                     raise prompt
-                for path in _generate_image(prompt, negative_prompt, 1, width, height, generate_format):
+                for path in _generate_image(prompt, negative_prompt, 1, width, height, generate_image_format):
                     pass
                 global image_count, prompt_count
                 image_count = image_count + 1
@@ -435,14 +438,12 @@ def generate_prompt_and_image(model,
             finally:
                 prompt_queue.task_done()
     producer_thread = threading.Thread(target=producer, args=(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule))
-    consumer_thread = threading.Thread(target=consumer, args=(width, height, negative_prompt))
+    consumer_thread = threading.Thread(target=consumer, args=(width, height, negative_prompt, generate_image_format))
     
     producer_thread.start()
     consumer_thread.start()
 
     prompt_queue.join()
-
-    prompt_queue.put(None)
     consumer_thread.join()
     prompt_count = image_count = 0
 def generate(model,
