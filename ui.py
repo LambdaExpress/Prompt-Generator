@@ -323,8 +323,11 @@ def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_pro
     if pre_prompt.endswith(','):
         pre_prompt = pre_prompt[:-1]
     if pre_prompt != '':
-        temp = [wildcard_match(pre_prompt, "wildcards") for _ in prompts]
-        prompts = temp
+        result = []
+        _pre_prompt = wildcard_match(pre_prompt, "wildcards")
+        for original_prompt in prompts:
+            result.append(_pre_prompt.replace("<<general>>", original_prompt))
+        prompts = result
     try:
         for _ in generate_and_save_image(prompts, negative_prompt, count_per_prompt, width, height):
             if is_cancel_image:
