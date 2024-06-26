@@ -404,7 +404,7 @@ def generate_prompt_and_image(model,
     def producer(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule):
         try:
             text_model, tokenizer = config_instance.models[model]
-            for i in range(1, loop_count + 1):
+            for i in tqdm(range(1, loop_count + 1)):
                 check_cancellation()
 
                 _artist = wildcard_match(artist, 'wildcards')
