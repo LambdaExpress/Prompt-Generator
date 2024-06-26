@@ -441,7 +441,6 @@ def generate_prompt_and_image(model,
                 global image_count, prompt_count
                 image_count = image_count + 1
             except MissionCompletedException as e:
-                global global_loop_count
                 global_loop_count = 0
                 raise MissionCompletedException(str(e))
             except Exception as e:
