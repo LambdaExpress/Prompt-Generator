@@ -60,23 +60,31 @@ def generate_and_save_image(prompts, negative_prompt, count_per_prompt, width, h
             "reference_strength_multiple": []
         }
     }
-    for prompt in tqdm(prompts):
-        for i in tqdm(range(count_per_prompt), leave=False):
+    for prompt in prompts:
+        for i in range(count_per_prompt):
             payload["parameters"]["seed"] = random.randint(0, 9999999999)
             payload["input"] = prompt
             try:
-                response = requests.post(url, headers=headers, json=payload)
-                with open('test.zip', 'wb') as f:
-                    f.write(response.content)
-                with zipfile.ZipFile('test.zip', 'r') as zip_ref:
-                    zip_ref.extractall(f'image/')
-                now = datetime.now()
-                formatted_date_time = now.strftime("%Y%m%d_%H%M%S")
-                os.rename('image/image_0.png', f'image/{formatted_date_time}.png')
-                yield f'image/{formatted_date_time}.png'
+                while True:
+                    now = datetime.now()
+                    formatted_date_time = now.strftime("%Y%m%d_%H%M%S")
+                    formatted_date = now.strftime("%Y%m%d")
+                    dir_name = os.path.join('image', formatted_date)
+                    os.makedirs(dir_name, exist_ok=True)
+                    try:
+                        response = requests.post(url, headers=headers, json=payload)
+                        response.raise_for_status()
+                        with open('temp.zip', 'wb') as f:
+                            f.write(response.content)
+                        with zipfile.ZipFile('temp.zip', 'r') as zip_ref:
+                            zip_ref.extractall(dir_name)
+                        break
+                    except:
+                        continue
+                os.rename(os.path.join(dir_name, 'image_0.png'), os.path.join(dir_name, f'{formatted_date_time}.png'))
+                yield os.path.join(dir_name, f'{formatted_date_time}.png')
             except Exception as e:
                 print(e)
-
             finally:
-                if os.path.exists('test.zip'):
-                    os.remove("test.zip")
+                if os.path.exists('temp.zip'):
+                    os.remove("temp.zip")

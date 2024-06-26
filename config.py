@@ -7,6 +7,8 @@ from llama_cpp import LlamaTokenizer
 import torch
 from transformers import GenerationConfig, PreTrainedModel, PreTrainedTokenizerBase
 from transformers import LlamaForCausalLM, LlamaTokenizer
+class MissionCompletedException(Exception):
+    pass
 class Rating:
     safe = 'safe'
     sensitive = 'sensitive'

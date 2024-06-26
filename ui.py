@@ -1,7 +1,7 @@
 import queue
 import threading
 import gradio as gr
-from config import Config
+from config import Config, MissionCompletedException
 from metainfo import SAVERULE, SPECIAL
 from generate_prompt import get_prompt, convert_text_to_dict, save_prompt
 from generate_image import generate_and_save_image
@@ -319,6 +319,7 @@ def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_pro
             prompts = prompts[:-1]
     except:
         prompts = [prompt_file_path]
+    prompts = [wildcard_match(prompt, "wildcards") for prompt in prompts]
     pre_prompt = pre_prompt.strip()
     if pre_prompt.endswith(','):
         pre_prompt = pre_prompt[:-1]
@@ -417,27 +418,34 @@ def generate_prompt_and_image(model,
                 prompt_queue.put((prompt, prompt_dict))
                 global prompt_count, image_count
                 prompt_count = prompt_count + 1
-            raise Exception("Mission Completed")
+            raise MissionCompletedException("Mission Completed")
         except Exception as e:
             prompt_queue.put(e)
     def consumer(width, height, negative_prompt, generate_image_format):
+        global global_loop_count
+        pbar = tqdm(range(global_loop_count))
         while True:
-            item = prompt_queue.get()
-            if item is None:
-                break
             try:
+                item = prompt_queue.get()
+                if item is None:
+                    break
+                if isinstance(item, Exception):
+                    raise item
                 prompt, prompt_dict = item
                 _negative_prompt = wildcard_match(negative_prompt, "wildcards")
                 _generate_image_format = dict_wildcard_match(generate_image_format, prompt_dict)
                 check_cancellation()
-                if isinstance(prompt, Exception):
-                    raise prompt
                 for path in _generate_image(prompt, _negative_prompt, 1, width, height, _generate_image_format):
                     pass
+                pbar.update(1)
                 global image_count, prompt_count
                 image_count = image_count + 1
+            except MissionCompletedException as e:
+                global global_loop_count
+                global_loop_count = 0
+                raise MissionCompletedException(str(e))
             except Exception as e:
-                raise Exception(f'Error\nException: {e}')
+                raise Exception(f'{e}')
             finally:
                 prompt_queue.task_done()
     producer_thread = threading.Thread(target=producer, args=(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule))
