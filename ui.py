@@ -404,7 +404,7 @@ def generate_prompt_and_image(model,
     def producer(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule):
         try:
             text_model, tokenizer = config_instance.models[model]
-            for i in tqdm(range(1, loop_count + 1)):
+            for i in tqdm(range(1, loop_count + 1), "Prompt"):
                 check_cancellation()
 
                 _artist = wildcard_match(artist, 'wildcards')
@@ -421,9 +421,12 @@ def generate_prompt_and_image(model,
             raise MissionCompletedException("Mission Completed")
         except Exception as e:
             prompt_queue.put(e)
+        finally:
+            global is_cancel
+            is_cancel = False
     def consumer(width, height, negative_prompt, generate_image_format):
         global global_loop_count
-        pbar = tqdm(range(global_loop_count))
+        pbar = tqdm(total=global_loop_count, desc="Image")
         while True:
             try:
                 item = prompt_queue.get()
@@ -446,6 +449,8 @@ def generate_prompt_and_image(model,
             except Exception as e:
                 raise Exception(f'{e}')
             finally:
+                global is_cancel
+                is_cancel = False
                 prompt_queue.task_done()
     producer_thread = threading.Thread(target=producer, args=(model, rating, artist, characters, copyrights, target, len_target, special_tags, general, width, height, tag_black_list, escape_bracket, temperature, loop_count, save_path, save_rule))
     consumer_thread = threading.Thread(target=consumer, args=(width, height, negative_prompt, generate_image_format))
