@@ -1,5 +1,8 @@
+import os
 import queue
+import random
 import threading
+from typing import List
 import gradio as gr
 from config import Config, MissionCompletedException
 from metainfo import SAVERULE, SPECIAL
@@ -7,7 +10,6 @@ from generate_prompt import get_prompt, convert_text_to_dict, save_prompt
 from generate_image import generate_and_save_image
 from wildcards import wildcard_match, dict_wildcard_match
 from tqdm import tqdm
-
 is_cancel = False
 is_cancel_image = False
 config_instance = Config()
@@ -163,13 +165,21 @@ def main():
                                 height,
                             ]
                         )
-                    count_per_prompt = gr.Slider(
-                        value=config_instance.count_per_prompt,
-                        minimum=1,
-                        maximum=100,
-                        step=1,
-                        label='Count per prompt'
-                    )
+                    with gr.Row(2):
+                        count_per_prompt = gr.Slider(
+                            value=config_instance.count_per_prompt,
+                            minimum=1,
+                            maximum=100,
+                            step=1,
+                            label='Count per prompt'
+                        )
+                        random_count = gr.Slider(
+                            value=config_instance.random_count,
+                            minimum=1,
+                            maximum=100,
+                            step=1,
+                            label='Random count'
+                        )
                     generate_image = gr.Button("Generate Image")
                     cancel_image = gr.Button("Cancel")
                 with gr.Column(2):
@@ -225,6 +235,7 @@ def main():
                 pre_prompt,
                 prompt_file_path,
                 generate_image_format,
+                random_count,
             ],
         )
         cancel_image.click(
@@ -256,6 +267,7 @@ def main():
                 pre_prompt,
                 prompt_file_path,
                 generate_image_format,
+                random_count,
             ],
         )
         generate_image.click(
@@ -267,6 +279,7 @@ def main():
                 width,
                 height,
                 pre_prompt,
+                random_count,
             ],
             outputs=[
                 n,
@@ -310,14 +323,27 @@ def monitor_counts():
 def _set_cancel_image(state = True):
     global is_cancel_image
     is_cancel_image = state
-def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_prompt : int, width : int, height : int, pre_prompt : str):
+def get_all_txt_content(folder_path : str) -> List[str]:
+    all_content = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.txt'):
+            file_path = os.path.join(folder_path, filename)
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+                all_content.append(content)
+    return all_content
+    
+def _generate_image(prompt_file_path : str, negative_prompt : str, count_per_prompt : int, width : int, height : int, pre_prompt : str, random_count : int = 1):
     n = 1
-    try:
+    if os.path.isfile(prompt_file_path):
         with open(prompt_file_path, 'r') as f:
             prompts = f.read().split('\n')
         if prompts[-1] == '':
             prompts = prompts[:-1]
-    except:
+    elif os.path.isdir(prompt_file_path):
+        prompts = get_all_txt_content(prompt_file_path)
+        prompts = random.sample(prompts, k = random_count)
+    else:
         prompts = [prompt_file_path]
     prompts = [wildcard_match(prompt, "wildcards") for prompt in prompts]
     pre_prompt = pre_prompt.strip()
@@ -365,6 +391,7 @@ def _save_settings(*args):
         'pre_prompt',
         'prompt_file_path',
         'generate_image_format',
+        'random_count',
     ]
     kwargs = dict(zip(keys, args))
     for key, value in kwargs.items():
